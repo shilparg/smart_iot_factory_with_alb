@@ -1,1 +1,1 @@
-# smart_iot_factory_with_alb
+# smart_iot_factory_v2

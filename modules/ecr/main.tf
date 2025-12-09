@@ -13,10 +13,7 @@ resource "aws_ecr_repository" "main" {
     encryption_type = "AES256" # Standard AWS managed encryption
   }
 
-  tags = {
-    Name        = var.repository_name
-    Environment = var.environment
-  }
+  tags = merge(var.tags, { Name = var.repository_name })
 }
 
 # Lifecycle Policy: Automatically cleans up old/untagged images to save money

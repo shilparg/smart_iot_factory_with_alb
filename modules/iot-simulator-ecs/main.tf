@@ -6,7 +6,8 @@ data "aws_secretsmanager_secret" "grafana_smtp" {
 
 resource "aws_cloudwatch_log_group" "logs" {
   name = "/ecs/iot-simulator"
-  retention_in_days = 7
+  retention_in_days = var.environment == "prod" ? 90 : 7
+  tags = merge(var.tags, { Name = "${var.environment}-iot-logs" })
 }
 
 resource "aws_ecs_task_definition" "main" {
@@ -333,7 +334,7 @@ resource "aws_security_group_rule" "allow_alb_ingress_prometheus" {
 # ECS Service: Attach Prometheus container
 
 resource "aws_ecs_service" "main" {
-  name            = "iot-sim-service"
+  name            = "${var.environment}-iot-service"
   cluster         = var.cluster_id
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = 1
@@ -354,6 +355,11 @@ resource "aws_ecs_service" "main" {
 
   # -----------------
 
+# Single NAT Gateway (Cost vs. Reliability)
+# The Observation: You are currently putting ECS tasks in Public Subnets (assigning public IPs).
+# The Improvement: For a production enterprise setup, resources usually live in Private Subnets with a NAT Gateway.
+# Prod: Private Subnets + NAT Gateway (More secure, higher cost).
+# Dev: Public Subnets (Cheaper, easier access).
   network_configuration {
     subnets          = var.subnets
     security_groups  = var.security_groups
@@ -365,5 +371,5 @@ resource "aws_ecs_service" "main" {
     aws_lb_listener_rule.grafana_rule,
     aws_lb_listener_rule.prometheus_rule
   ]
-
+  tags = merge(var.tags, { Name = "${var.environment}-iot-service" })
 }

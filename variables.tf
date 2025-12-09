@@ -1,3 +1,14 @@
+variable "project_name" {
+  description = "Project identifier"
+  type        = string
+  default     = "iot-factory"
+}
+
+variable "owner" {
+  description = "Name of the owner (e.g., 'grp1' for prod or 'shilpa' for dev)"
+  type        = string
+}
+
 variable "region" {
   type    = string
   default = "us-east-1"
@@ -24,7 +35,7 @@ variable "simulator_count" {
 
 variable "allowed_cidr" {
   type        = string
-  default     = "0.0.0.0/0"
+  #default     = "0.0.0.0/0"
   description = "CIDR block allowed to access EC2 services (e.g., SSH, Grafana, Prometheus)"
 }
 
@@ -76,6 +87,11 @@ variable "iot_topic" {
 #============================================================
 
 variable "create_buckets" {
+  type    = bool
+  default = true
+}
+
+variable "create_backend_resources" {
   type    = bool
   default = true
 }

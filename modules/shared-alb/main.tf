@@ -19,6 +19,7 @@ resource "aws_security_group" "lb_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = merge(var.tags, { Name = "${var.name_prefix}-alb-sg" })
 }
 
 resource "aws_lb" "main" {
@@ -27,22 +28,25 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
   subnets            = var.public_subnets
+  tags = merge(var.tags, { Name = "${var.name_prefix}-alb" })
 }
 
 resource "aws_lb_target_group" "grafana" {
-  name        = "grafana-tg"
+  name        = "${var.name_prefix}-graf-tg"
   port        = 3000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
+  tags = merge(var.tags, { Name = "${var.name_prefix}-grafana-tg" })
 }
 
 resource "aws_lb_target_group" "prometheus" {
-  name        = "prometheus-tg"
+  name        = "${var.name_prefix}-prom-tg"
   port        = 9090
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
+  tags = merge(var.tags, { Name = "${var.name_prefix}-prometheus-tg" })
 }
 
 resource "aws_lb_listener" "http" {

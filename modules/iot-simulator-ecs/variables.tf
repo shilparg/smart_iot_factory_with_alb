@@ -1,5 +1,18 @@
 # modules/iot-simulator-ecs/variables.tf
 
+variable "tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}
+
+# (Only for modules that need to name things, like Network/ALB/ECR)
+variable "name_prefix" { 
+  description = "Standard naming prefix (owner-env-project)"
+  type        = string
+  default     = "" # Optional default to prevent errors if you miss it
+}
+
 variable "region" {}
 variable "cluster_id" {}
 variable "vpc_id" {}
@@ -38,4 +51,10 @@ variable "alb_listener_arn" {
 variable "alb_security_group_id" {
   description = "Security Group ID of the ALB (to allow traffic)"
   type        = string
+}
+
+variable "environment" {
+  type    = string
+  default = "dev"
+  description = "Deployment environment (e.g., dev, staging, prod)"
 }

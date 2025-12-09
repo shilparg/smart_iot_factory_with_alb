@@ -8,7 +8,10 @@ data "aws_iot_endpoint" "iot" {
 }
 
 resource "aws_iot_thing" "simulator" {
-  name = "iot-sim-thing-${var.environment}"
+  name = "${var.environment}-iot-simulator"
+  attributes = {
+    Owner = var.tags["Owner"] # Pass owner tag to IoT attribute
+  }
 }
 
 resource "aws_iot_policy" "sim_policy" {

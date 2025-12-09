@@ -1,58 +1,83 @@
 # /root/main.tf
 
-data "aws_availability_zones" "available" {
-  state = "available"
+locals {
+  # Logic: Just use the provided owner variable directly
+  # Result: "{owner}-{env}-{project}"
+  # Example: "shilpa-dev-iot-factory" OR "grp1-prod-iot-factory"
+  resource_prefix = "${var.owner}-${var.environment}-${var.project_name}"
+
+  common_tags = {
+    Owner       = var.owner
+    Environment = var.environment
+    Project     = var.project_name
+   }
 }
 
-# Helper to get Account ID
-data "aws_caller_identity" "current" {}
+################################################################################
+# 1. BACKEND INFRASTRUCTURE (The "Chicken & Egg" Handler)
+################################################################################
+module "backend_infra" {
+  source = "./modules/backend-infra"
 
-# Create the Cluster (Compute Environment)
-resource "aws_ecs_cluster" "main_cluster" {
-  name = "iot-factory-cluster"
+  # IMPORTANT: Always keep this TRUE for the main project.
+  # Only set to false if you lost your state file but the bucket still exists.
+  create_backend_resources = true
+  
+  # Names must be globally unique
+  bucket_name         = "${local.resource_prefix}-state-bucket"
+  dynamodb_table_name = "${local.resource_prefix}-locks"
+  tags                = local.common_tags
 }
 
-########################################
-# Modules
-########################################
+################################################################################
+# 2. APPLICATION MODULES
+################################################################################
 
 module "network" {
   source = "./modules/network"
 
+  name_prefix = local.resource_prefix
+  tags        = local.common_tags
   vpc_cidr           = var.vpc_cidr
   # CHANGE: Match the new variable name inside the module
   public_subnet_cidrs = var.public_subnet_cidrs
   environment         = var.environment
+  allowed_cidr        = var.allowed_cidr
 }
 
 module "iot" {
   source = "./modules/iot"
-
   region      = var.region
   environment = var.environment
   iot_topic   = var.iot_topic
+  tags        = local.common_tags
 }
 
 # 1. Create the Shared Load Balancer
 module "shared_alb" {
   source = "./modules/shared-alb"
 
+  name_prefix = local.resource_prefix
+  tags        = local.common_tags
   vpc_id         = module.network.vpc_id     # Assuming you have a VPC module
   public_subnets = module.network.public_subnets
-  name_prefix    = "iot-project"
 }
 
 module "s3_config" {
   source = "./modules/s3_config"
 
+  name_prefix = local.resource_prefix
+  tags        = local.common_tags
   region           = var.region
   environment      = var.environment
   create_buckets   = var.create_buckets
 
   # Compose bucket names dynamically
-  cert_s3_bucket    = "${var.cert_s3_bucket}-${var.environment}"
-  config_s3_bucket  = "${var.config_s3_bucket}-${var.environment}"
+  # cert_s3_bucket    = "${var.cert_s3_bucket}-${var.environment}"
+  # config_s3_bucket  = "${var.config_s3_bucket}-${var.environment}"
 
+  config_s3_bucket = "${local.resource_prefix}-config" 
+  cert_s3_bucket   = "${local.resource_prefix}-certs"
     # Add this line
   cert_files        = var.cert_files
 }
@@ -61,6 +86,8 @@ module "iot_ecs" {
   source = "./modules/iot-simulator-ecs"
 
   # Infrastructure wiring
+  tags        = local.common_tags
+  environment     = var.environment
   region          = var.region
   account_id      = data.aws_caller_identity.current.account_id
   cluster_id      = aws_ecs_cluster.main_cluster.id
@@ -85,16 +112,26 @@ module "iot_ecs" {
 
   # DOCKER IMAGE
   # Update this URI after running 'docker push'
-  app_image_uri    = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/iot-simulator:latest"
+  #app_image_uri    = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/iot-simulator:latest"
+  # Image URI (Note: You must push the image manually after first apply)
+  app_image_uri    = "${module.ecr_simulator.repository_url}:latest"
 }
 
 # Repository for the Python Simulator Code
 module "ecr_simulator" {
   source = "./modules/ecr"
 
-  repository_name = "iot-simulator"
+  repository_name = "${local.resource_prefix}-simulator"
   environment     = var.environment
+  tags = local.common_tags
 }
+
+resource "aws_ecs_cluster" "main_cluster" {
+  name = "${local.resource_prefix}-cluster"
+  tags = local.common_tags
+}
+
+data "aws_caller_identity" "current" {}
 
 # Repository for Custom Grafana (Optional, only if you customize Grafana)
 # module "ecr_grafana" {

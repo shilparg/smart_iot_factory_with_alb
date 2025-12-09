@@ -1,5 +1,18 @@
 # modules/network/variables.tf
 
+variable "tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}
+
+# (Only for modules that need to name things, like Network/ALB/ECR)
+variable "name_prefix" { 
+  description = "Standard naming prefix (owner-env-project)"
+  type        = string
+  default     = "" # Optional default to prevent errors if you miss it
+}
+
 variable "vpc_cidr" {
   type        = string
   description = "CIDR block for the VPC"
@@ -14,7 +27,6 @@ variable "environment" {
 
 variable "allowed_cidr" {
   type        = string
-  default     = "0.0.0.0/0"
   description = "CIDR block allowed to access EC2/ECS services (e.g., SSH, Grafana, Prometheus)"
 }
 

@@ -108,10 +108,10 @@ output "app_url" {
   value       = "http://${module.shared_alb.dns_name}"
 }
 
-output "grafana_url" {
-  value = "http://${module.shared_alb.dns_name}/grafana/"
-}
+# output "grafana_url" {
+#   value = "http://${module.shared_alb.dns_name}/grafana/"
+# }
 
-output "prometheus_url" {
-  value = "http://${module.shared_alb.dns_name}/prometheus/"
-}
+# output "prometheus_url" {
+#   value = "http://${module.shared_alb.dns_name}/prometheus/"
+# }

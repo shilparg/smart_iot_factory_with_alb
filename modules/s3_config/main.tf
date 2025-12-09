@@ -3,13 +3,15 @@
 resource "aws_s3_bucket" "config_bucket" {
   count         = var.create_buckets ? 1 : 0
   bucket        = var.config_s3_bucket
-  force_destroy = true
+  force_destroy = var.environment == "prod" ? false : true
+  tags = merge(var.tags, { Name = var.config_s3_bucket })
 }
 
 resource "aws_s3_bucket" "cert_bucket" {
   count         = var.create_buckets ? 1 : 0
   bucket        = var.cert_s3_bucket
-  force_destroy = true
+  force_destroy = var.environment == "prod" ? false : true
+  tags = merge(var.tags, { Name = var.cert_s3_bucket })
 }
 
 data "aws_s3_bucket" "config_bucket" {

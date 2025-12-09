@@ -2,7 +2,7 @@
 # Networking
 ############################################
 
-# 1. Get Available Zones dynamically
+# Get Available Zones dynamically
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -12,7 +12,7 @@ resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
-  tags = { Name = "iot-sim-vpc-${var.environment}" }
+  tags = merge(var.tags, { Name = "${var.name_prefix}-vpc" })
 }
 
 # 2. Create Multiple Subnets (One per CIDR provided)
@@ -25,13 +25,12 @@ resource "aws_subnet" "public" {
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
 
-  tags = {
-    Name = "iot-sim-public-${var.environment}-${count.index + 1}"
-  }
+  tags = merge(var.tags, { Name = "${var.name_prefix}-public-subnet-${count.index + 1}" })
 }
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.this.id
+  tags = merge(var.tags, { Name = "${var.name_prefix}-igw" })
 }
 
 resource "aws_route_table" "public" {
@@ -41,6 +40,7 @@ resource "aws_route_table" "public" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
   }
+  tags = merge(var.tags, { Name = "${var.name_prefix}-public-rt" })
 }
 
 # 3. Associate ALL subnets with the Route Table
@@ -55,7 +55,8 @@ resource "aws_route_table_association" "public_assoc" {
 ############################################
 # (Your Security Group code remains the same)
 resource "aws_security_group" "ecs_sg" {
-  name        = "iot-sim-ec2-sg-${var.environment}"
+  name        = "${var.name_prefix}-ecs-sg"
+  tags = merge(var.tags, { Name = "${var.name_prefix}-ecs-sg" })
   description = "Allow SSH (22), Grafana (3000), Prometheus (9090)"
   vpc_id      = aws_vpc.this.id
 
